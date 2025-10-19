@@ -1,20 +1,30 @@
-import { Router } from 'express';
-import routes from '../controllers/authController';
+import { Router, Request, Response, NextFunction } from 'express';
+import authCtrl from '../controllers/authController';
 
 const router = Router();
 
-router.get('/', routes.ping);
+const validar = (req: Request, res: Response, next: NextFunction) => {
+  const datos = Object.values(req.body);
+  if (datos.some(v => typeof v !== 'string' || !v.trim())) {
+    return res.status(400).json({ error: 'Datos inválidos' });
+  }
+  next();
+};
 
-router.post('/login', routes.login);
+const verificarAcceso = (req: Request, res: Response, next: NextFunction) => {
+  const token = req.headers.authorization;
+  if (!token) return res.status(401).json({ error: 'No autorizado' });
+  next();
+};
 
-// POST /auth/forgot-password
-router.post('/forgot-password', routes.forgotPassword);
+router.get('/', (req, res, next) => authCtrl.ping(req, res, next));
 
-// POST /auth/reset-password
-router.post('/reset-password', routes.resetPassword);
+router.post('/login', validar, (req, res, next) => authCtrl.login(req, res, next));
 
-// POST /auth/set-password
-router.post('/set-password', routes.setPassword);
+router.post('/forgot-password', validar, (req, res, next) => authCtrl.forgotPassword(req, res, next));
 
+router.post('/reset-password', validar, (req, res, next) => authCtrl.resetPassword(req, res, next));
+
+router.post('/set-password', verificarAcceso, validar, (req, res, next) => authCtrl.setPassword(req, res, next));
 
 export default router;

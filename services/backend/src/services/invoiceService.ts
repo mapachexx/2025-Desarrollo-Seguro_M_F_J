@@ -62,27 +62,26 @@ class InvoiceService {
   }
 
 
-  static async getReceipt(
-    invoiceId: string,
-    pdfName: string
-  ) {
-    // check if the invoice exists
-    const invoice = await db<InvoiceRow>('invoices').where({ id: invoiceId }).first();
-    if (!invoice) {
-      throw new Error('Invoice not found');
-    }
-    try {
-      const filePath = `/invoices/${pdfName}`;
-      const content = await fs.readFile(filePath, 'utf-8');
-      return content;
-    } catch (error) {
-      // send the error to the standard output
-      console.error('Error reading receipt file:', error);
-      throw new Error('Receipt not found');
+static async getReceipt(invoiceId: string, pdfName: string) {
+  const invoice = await db<InvoiceRow>('invoices').where({ id: invoiceId }).first();
+  if (!invoice) throw new Error('Invoice not found');
 
-    } 
+  const basePath = path.resolve('./invoices');
+  if (!pdfName || typeof pdfName !== 'string') throw new Error('Invalid name');
+  if (!/^[a-zA-Z0-9._-]+$/.test(pdfName)) throw new Error('Invalid characters');
+  if (path.extname(pdfName).toLowerCase() !== '.pdf') throw new Error('Invalid file type');
 
-  };
+  const targetPath = path.resolve(basePath, pdfName);
+  if (!targetPath.startsWith(basePath + path.sep)) throw new Error('Invalid path');
+
+  try {
+    const content = await fs.promises.readFile(targetPath, 'utf-8');
+    return content;
+  } catch {
+    throw new Error('Receipt not found');
+  }
+}
+;
 
 };
 
